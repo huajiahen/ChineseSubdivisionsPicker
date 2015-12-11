@@ -25,7 +25,7 @@ class ViewController: UIViewController, ChineseSubdivisionsPickerDelegate {
         }
     }
     
-    func subdivisionsPickerDidUpdate() {
+    func subdivisionsPickerDidUpdate(sender: ChineseSubdivisionsPicker) {
         dataLabel.text = (subdivisionsPicker.province ?? "") + " " + (subdivisionsPicker.city ?? "") + " " + (subdivisionsPicker.district ?? "")
     }
     

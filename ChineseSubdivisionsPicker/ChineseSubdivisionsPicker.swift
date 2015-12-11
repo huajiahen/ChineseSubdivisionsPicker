@@ -9,7 +9,7 @@
 import UIKit
 
 public protocol ChineseSubdivisionsPickerDelegate {
-    func subdivisionsPickerDidUpdate()
+    func subdivisionsPickerDidUpdate(sender: ChineseSubdivisionsPicker)
 }
 
 public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UIPickerViewDelegate {
@@ -68,7 +68,7 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
         if pickerType == .District {
             district = districts[0]
         }
-        pickerDelegate?.subdivisionsPickerDidUpdate()
+        pickerDelegate?.subdivisionsPickerDidUpdate(self)
     }
     
     //MARK: init
@@ -179,7 +179,7 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
                 reloadComponent(1)
                 selectRow(0, inComponent: 1, animated: false)
             } else {
-                pickerDelegate?.subdivisionsPickerDidUpdate()
+                pickerDelegate?.subdivisionsPickerDidUpdate(self)
             }
         case 1:
             let newCity = cities[row]
@@ -189,11 +189,11 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
                 reloadComponent(2)
                 selectRow(0, inComponent: 2, animated: false)
             } else {
-                pickerDelegate?.subdivisionsPickerDidUpdate()
+                pickerDelegate?.subdivisionsPickerDidUpdate(self)
             }
         case 2:
             district = districts[row]
-            pickerDelegate?.subdivisionsPickerDidUpdate()
+            pickerDelegate?.subdivisionsPickerDidUpdate(self)
         default:
             break
         }
