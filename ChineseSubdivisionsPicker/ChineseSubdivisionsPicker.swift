@@ -35,14 +35,53 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
         }
     }
     public var pickerDelegate: ChineseSubdivisionsPickerDelegate?
-    private(set) public var province: String?
-    private(set) public var city: String?
-    private(set) public var district: String?
+    public var province: String? {
+        get { return __province }
+        set {
+            guard !provinces.isEmpty && newValue != nil else {
+                return
+            }
+            
+            let index = provinces.indexOf(newValue!) ?? 0
+            if selectedRowInComponent(0) != index {
+                selectRow(index, inComponent: 0, animated: false)
+            }
+        }
+    }
     
-    private var subdivisionsData = [String: [[String: [String]]]]()
-    private var provinces = [String]()
-    private var cities = [String]()
-    private var districts = [String]()
+    public var city: String? {
+        get { return __city }
+        set {
+            guard !cities.isEmpty && pickerType != .Province && newValue != nil else {
+                return
+            }
+            let index = cities.indexOf(newValue!) ?? 0
+            if selectedRowInComponent(1) != index {
+                selectRow(index, inComponent: 1, animated: false)
+            }
+        }
+    }
+    
+    public var district: String? {
+        get { return __district }
+        set {
+            guard !districts.isEmpty && pickerType == .District && newValue != nil else {
+                return
+            }
+            let index = districts.indexOf(newValue!) ?? 0
+            if selectedRowInComponent(2) != index {
+                selectRow(index, inComponent: 2, animated: false)
+            }
+        }
+    }
+    
+    private var subdivisionsData: [String: [[String: [String]]]] = [:]
+    private var provinces: [String] = []
+    private var cities: [String] = []
+    private var districts: [String] = []
+    private var __province: String?
+    private var __city: String?
+    private var __district: String?
     
     override public weak var delegate: UIPickerViewDelegate? {
         didSet {
@@ -65,8 +104,8 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
     override public func didMoveToWindow() {
         super.didMoveToWindow()
         
-        if pickerType == .District {
-            district = districts[0]
+        if __province == nil {
+            selectRow(0, inComponent: 0, animated: false)
         }
         pickerDelegate?.subdivisionsPickerDidUpdate(self)
     }
@@ -88,14 +127,10 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
     func setupPicker() {
         let podBundle = NSBundle(forClass: self.classForCoder)
         
-        guard let path = podBundle.pathForResource("ChineseSubdivisions", ofType: "plist") else {
-            assertionFailure("ChineseSubdivisionsPicker load data failed.")
-            return
-        }
-        
-        guard let localData = NSDictionary(contentsOfFile: path) as? [String: [[String: [String]]]] else {
-            assertionFailure("ChineseSubdivisionsPicker load data failed.")
-            return
+        guard let path = podBundle.pathForResource("ChineseSubdivisions", ofType: "plist"),
+            localData = NSDictionary(contentsOfFile: path) as? [String: [[String: [String]]]] else {
+                assertionFailure("ChineseSubdivisionsPicker load data failed.")
+                return
         }
         
         subdivisionsData = localData
@@ -123,25 +158,8 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
         case 0:
             return provinces.count
         case 1:
-            let selectedProvince = selectedRowInComponent(0)
-            guard selectedProvince != -1 && selectedProvince < provinces.count else {
-                return 0
-            }
-            province = provinces[selectedProvince]
-            cities = Array(Array(subdivisionsData.values)[selectedProvince][0].keys)
             return cities.count
         case 2:
-            let selectedProvince = selectedRowInComponent(0)
-            guard selectedProvince != -1 && selectedProvince < subdivisionsData.count else {
-                return 0
-            }
-            let selectedCity = selectedRowInComponent(1)
-            let selectedProvinceData = Array(subdivisionsData.values)[selectedProvince][0]
-            guard selectedCity != -1 && selectedCity < selectedProvinceData.count else {
-                return 0
-            }
-            city = cities[selectedCity]
-            districts = Array(selectedProvinceData.values)[selectedCity]
             return districts.count
         default:
             return 0
@@ -173,9 +191,14 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
         switch component {
         case 0:
             let newProvince = provinces[row]
-            let reloadFlag = province != newProvince
-            province = newProvince
+            let reloadFlag = __province != newProvince
+            __province = newProvince
             if reloadFlag && pickerType != .Province {
+                guard let citiesInProvince = subdivisionsData[newProvince]?[0] else {
+                    return
+                }
+                cities = Array(citiesInProvince.keys)
+
                 reloadComponent(1)
                 selectRow(0, inComponent: 1, animated: false)
             } else {
@@ -183,16 +206,22 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
             }
         case 1:
             let newCity = cities[row]
-            let reloadFlag = city != newCity
-            city = newCity
+            let reloadFlag = __city != newCity
+            __city = newCity
             if reloadFlag && pickerType != .City {
+                guard let province = __province,
+                    districtsInCity = subdivisionsData[province]?[0][newCity] else {
+                        return
+                }
+                districts = districtsInCity
+                
                 reloadComponent(2)
                 selectRow(0, inComponent: 2, animated: false)
             } else {
                 pickerDelegate?.subdivisionsPickerDidUpdate(self)
             }
         case 2:
-            district = districts[row]
+            __district = districts[row]
             pickerDelegate?.subdivisionsPickerDidUpdate(self)
         default:
             break

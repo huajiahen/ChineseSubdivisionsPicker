@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "ChineseSubdivisionsPicker"
-  s.version          = "0.2.0"
+  s.version          = "0.3.0"
   s.summary          = "ChineseSubdivisionsPicker is a simple Chinese Subdivisions picker inherited from UIPickerView and written in Swift."
   s.description      = <<-DESC
                          ChineseSubdivisionsPicker is a simple Chinese Subdivisions picker inherited from UIPickerView and written in Swift.
