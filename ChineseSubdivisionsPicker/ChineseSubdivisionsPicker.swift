@@ -13,6 +13,16 @@ public protocol ChineseSubdivisionsPickerDelegate {
 }
 
 public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UIPickerViewDelegate {
+    struct Province {
+        let name: String
+        let cities: [City]
+    }
+    
+    struct City {
+        let name: String
+        let districts: [String]
+    }
+    
     public enum ChineseSubdivisionsPickerType {
         case Province
         case City
@@ -75,7 +85,7 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
         }
     }
     
-    private var subdivisionsData: [String: [[String: [String]]]] = [:]
+    private var subdivisionsData: [Province] = []
     private var provinces: [String] = []
     private var cities: [String] = []
     private var districts: [String] = []
@@ -128,13 +138,17 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
         let podBundle = NSBundle(forClass: self.classForCoder)
         
         guard let path = podBundle.pathForResource("ChineseSubdivisions", ofType: "plist"),
-            localData = NSDictionary(contentsOfFile: path) as? [String: [[String: [String]]]] else {
+            localData = NSArray(contentsOfFile: path) as? [[String: [[String: [String]]]]] else {
                 assertionFailure("ChineseSubdivisionsPicker load data failed.")
                 return
         }
         
-        subdivisionsData = localData
-        provinces = Array(subdivisionsData.keys)
+        subdivisionsData = localData.map { provinceData in
+            Province(name: provinceData.keys.first!, cities: provinceData.values.first!.map({ citiesData in
+                City(name: citiesData.keys.first!, districts: citiesData.values.first!)
+            }))
+        }
+        provinces = subdivisionsData.map({ $0.name })
         
         delegate = self
         dataSource = self
@@ -190,14 +204,11 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
     public func pickerView(pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         switch component {
         case 0:
-            let newProvince = provinces[row]
-            let reloadFlag = __province != newProvince
-            __province = newProvince
-            if reloadFlag && pickerType != .Province {
-                guard let citiesInProvince = subdivisionsData[newProvince]?[0] else {
-                    return
-                }
-                cities = Array(citiesInProvince.keys)
+            if __province != provinces[row] && pickerType != .Province {
+                __province = provinces[row]
+                
+                let citiesInProvince = subdivisionsData[row].cities
+                cities = citiesInProvince.map({ $0.name })
 
                 reloadComponent(1)
                 selectRow(0, inComponent: 1, animated: false)
@@ -205,15 +216,14 @@ public class ChineseSubdivisionsPicker: UIPickerView, UIPickerViewDataSource, UI
                 pickerDelegate?.subdivisionsPickerDidUpdate(self)
             }
         case 1:
-            let newCity = cities[row]
-            let reloadFlag = __city != newCity
-            __city = newCity
-            if reloadFlag && pickerType != .City {
-                guard let province = __province,
-                    districtsInCity = subdivisionsData[province]?[0][newCity] else {
+            if __city != cities[row] && pickerType != .City {
+                __city = cities[row]
+                
+                guard let province = subdivisionsData.filter({ $0.name == __province }).first,
+                    city = province.cities.filter({ $0.name == __city }).first else {
                         return
                 }
-                districts = districtsInCity
+                districts = city.districts
                 
                 reloadComponent(2)
                 selectRow(0, inComponent: 2, animated: false)
